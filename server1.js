@@ -2,8 +2,21 @@ var http = require("http");
 var express = require('express');
 var app = express();
 var cron = require('node-cron');
-var feed = require('feed-read')
-var scrape = require('html-metadata');
+var mysql = require('mysql');
+var connection = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'root',
+  password : '',
+  database : 'feed'
+});
+
+connection.connect(function(err){
+  if(!err)
+    console.log("Database is connected ... \n\n");  
+  else
+    console.log("Error connecting database ... \n\n");  
+});
+
 var timeR = [
   {port: 3000, time: 9000000},
   {port: 3001, time: 9000000},
@@ -22,55 +35,24 @@ app.all('/', function(req, res, next) {
   next();
 });
 app.get('/',function(req, res, next){  
-  // if(redirectPort !== null){
-  //   var redirectUrl = 'http://localhost:' + redirectPort + req.url;
-  //   res.redirect(redirectUrl);
-  // }
-  // else{
-    // var list = JSON.stringify(getFeed());
-    res.send(JSON.stringify({ a: 1, feed: JSON.stringify(getFeed())}));
+  if(redirectPort !== null){
+    var redirectUrl = 'http://localhost:' + redirectPort + req.url;
+    res.redirect(redirectUrl);
+  }
+  else{
+    var sql = "SELECT * FROM feed.news LIMIT 10";
+    connection.query(sql, function (err, result) {
+      if (err) throw err;
+      console.log(result);
+      res.send(JSON.stringify({ feed: result }));
+    });
     
-  // }
+  }
 })
 // testing path
 app.get('/test',function(req,res){  
   res.send("server 1");
 })
-// feed read
-urls = [
-    // "http://newtimes.kz/rss",
-    // "https://ru.sputniknews.kz/export/rss2/archive/index.xml",
-    "https://kapital.kz/feed"
-    // "http://feeds.bbci.co.uk/news/technology/rss.xml",
-    // "http://feeds.skynews.com/feeds/rss/technology.xml",
-    // "http://www.techmeme.com/feed.xml"
-];
-function getFeed(){  
-  var list = [];
-  for (var j = 0; j < urls.length; j++) {
-    feed(urls[j], function(err, articles) {
-      for (var i = 0; i < 5; i++) {
-        list.push({
-          site: 'kapital.kz',
-          title: articles[i].title,
-          link: articles[i].link,
-          content: articles[i].content,
-          published_time: articles[i].published,
-        });
-        // if(i === 20)
-        //   break;
-        if( i === articles.length-1 && j === urls.length-1) {
-          // res.end("</body>\n</html>"); e
-        } 
-      } 
-    }); 
-  }
-  setTimeout(function() {
-    return list;
-  }, 4000);
-  return list;
-
-}
 // cron job
 cron.schedule('*/15 * * * * *', function(){
   research()
