@@ -40,7 +40,7 @@ app.get('/',function(req, res, next){
     res.redirect(redirectUrl);
   }
   else{
-    var sql = "SELECT * FROM feed.news LIMIT 10";
+    var sql = "SELECT * FROM feed.news ORDER BY id DESC LIMIT 100";
     connection.query(sql, function (err, result) {
       if (err) throw err;
       console.log(result);
